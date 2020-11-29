@@ -1,0 +1,206 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Entity Relationship</title>
+  <meta name="description" content="Interactive entity-relationship diagram or data model diagram implemented by GoJS in JavaScript for HTML." />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Copyright 1998-2020 by Northwoods Software Corporation. -->
+</head>
+<body onload="init()">
+<div id="sample">
+  <div id="myDiagramDiv" style="background-color: white; border: solid 1px black; width: 100%; height: 700px"></div>
+</div>
+  <script src="../release/go.js"></script>
+  <script src="../extensions/Figures.js"></script>
+  <!-- <script src="../assets/js/goSamples.js"></script>   -->
+  <!-- this is only for the GoJS Samples framework -->
+  <script id="code">
+    function init() {
+    if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
+    var $ = go.GraphObject.make;  // for conciseness in defining templates
+
+    myDiagram =
+      $(go.Diagram, "myDiagramDiv",  // must name or refer to the DIV HTML element
+        {
+          allowDelete: false,
+          allowCopy: false,
+          layout: $(go.ForceDirectedLayout),
+          "undoManager.isEnabled": true
+        });
+
+    var colors = {
+      'red': '#be4b15',
+      'green': '#52ce60',
+      'blue': '#6ea5f8',
+      'lightred': '#fd8852',
+      'lightblue': '#afd4fe',
+      'lightgreen': '#b9e986',
+      'pink': '#faadc1',
+      'purple': '#d689ff',
+      'orange': '#fdb400',
+    }
+
+    // the template for each attribute in a node's array of item data
+    var itemTempl =
+      $(go.Panel, "Horizontal",
+        $(go.Shape,
+          { desiredSize: new go.Size(15, 15), strokeJoin: "round", strokeWidth: 3, stroke: null, margin: 2 },
+          new go.Binding("figure", "figure"),
+          new go.Binding("fill", "color"),
+          new go.Binding("stroke", "color")),
+        $(go.TextBlock,
+          {
+            stroke: "#333333",
+            font: "bold 14px sans-serif"
+          },
+          new go.Binding("text", "name"))
+      );
+
+    // define the Node template, representing an entity
+    myDiagram.nodeTemplate =
+      $(go.Node, "Auto",  // the whole node panel
+        {
+          selectionAdorned: true,
+          resizable: true,
+          layoutConditions: go.Part.LayoutStandard & ~go.Part.LayoutNodeSized,
+          fromSpot: go.Spot.AllSides,
+          toSpot: go.Spot.AllSides,
+          isShadowed: true,
+          shadowOffset: new go.Point(3, 3),
+          shadowColor: "#C5C1AA"
+        },
+        new go.Binding("location", "location").makeTwoWay(),
+        // whenever the PanelExpanderButton changes the visible property of the "LIST" panel,
+        // clear out any desiredSize set by the ResizingTool.
+        new go.Binding("desiredSize", "visible", function(v) { return new go.Size(NaN, NaN); }).ofObject("LIST"),
+        // define the node's outer shape, which will surround the Table
+        $(go.Shape, "Circle", //RoundedRectangle
+          { fill: 'white', stroke: "#eeeeee", strokeWidth: 3 }),
+        $(go.Panel, "Table",
+          { margin: 8, stretch: go.GraphObject.Fill },
+          $(go.RowColumnDefinition, { row: 0, sizing: go.RowColumnDefinition.None }),
+          // the table header
+          $(go.TextBlock,
+            {
+              row: 0, alignment: go.Spot.Center,
+              margin: new go.Margin(0, 24, 0, 2),  // leave room for Button
+              font: "bold 16px sans-serif"
+            },
+            new go.Binding("text", "key")),
+          // the collapse/expand button
+          $("PanelExpanderButton", "LIST",  // the name of the element whose visibility this button toggles
+            { row: 0, alignment: go.Spot.TopRight }),
+          // the list of Panels, each showing an attribute
+          $(go.Panel, "Vertical",
+            {
+              name: "LIST",
+              row: 1,
+              padding: 3,
+              alignment: go.Spot.TopLeft,
+              defaultAlignment: go.Spot.Left,
+              stretch: go.GraphObject.Horizontal,
+              itemTemplate: itemTempl
+            },
+            new go.Binding("itemArray", "items"))
+        )  // end Table Panel
+      );  // end Node
+
+    // define the Link template, representing a relationship
+    myDiagram.linkTemplate =
+      $(go.Link,  // the whole link panel
+        {
+          selectionAdorned: true,
+          layerName: "Foreground",
+          reshapable: true,
+          routing: go.Link.AvoidsNodes,
+          corner: 5,
+          curve: go.Link.JumpOver
+        },
+        $(go.Shape,  // the link shape
+          { stroke: "#303B45", strokeWidth: 2.5 }),
+        $(go.TextBlock,  // the "from" label
+          {
+            textAlign: "center",
+            font: "bold 14px sans-serif",
+            stroke: "#1967B3",
+            segmentIndex: 0,
+            segmentOffset: new go.Point(NaN, NaN),
+            segmentOrientation: go.Link.OrientUpright
+          },
+          new go.Binding("text", "text")),
+        $(go.TextBlock,  // the "to" label
+          {
+            textAlign: "center",
+            font: "bold 14px sans-serif",
+            stroke: "#1967B3",
+            segmentIndex: -1,
+            segmentOffset: new go.Point(NaN, NaN),
+            segmentOrientation: go.Link.OrientUpright
+          },
+          new go.Binding("text", "toText"))
+      );
+      const proxyurl = "https://cors-anywhere.herokuapp.com/";
+      const url = "https://svk-software-project.herokuapp.com/srs";
+      fetch(proxyurl+url).then(function(response) {   //proxyurl + url
+          return response.json();
+      }).then(function(json) {
+        
+    var nodeDataArray = [
+      {
+        key: "Start"
+      },{
+        key: "End"
+      }
+    ];
+    DataArray = []
+    //console.log(json.process[0][3])
+    for (const proc of json.process) {
+      if(!DataArray.includes(proc[4])){
+        DataArray.push(proc[4])
+        nodeDataArray.push({
+        key: proc[4],
+        // items: [{ name: proc[2], iskey: true, figure: "Decision", color: colors.red }]
+      });
+      }
+    }
+    var linkDataArray = [];
+      const flag1 = []
+      const flag2 = []
+    for (const proc of json.process){
+      var f = 0;
+      var s = 0;
+      for (const pro of json.process) {
+        if (proc[3]==pro[5]){
+          linkDataArray.push({ from: pro[4], to: proc[4], text: pro[5], toText: "---->" });
+          f++;
+        } else if (pro[3]==proc[5]){
+          s++;
+        }
+      }
+      flag1.push(f);
+      flag2.push(s)
+    }
+    for (const proc in json.process){
+      if(flag1[proc]==0){
+        linkDataArray.push({ from: "Start", to: json.process[proc][4], text: json.process[proc][3], toText: "---->" });
+      }
+      if(flag2[proc]==0){
+        linkDataArray.push({ from: json.process[proc][4], to: "End", text: json.process[proc][5], toText: "---->" });
+      }
+    }
+    myDiagram.model = $(go.GraphLinksModel,
+      {
+        copiesArrays: true,
+        copiesArrayObjects: true,
+        nodeDataArray: nodeDataArray,
+        linkDataArray: linkDataArray
+      });
+        // console.log(json)
+      }).catch(function(err) {
+          console.log('Fetch problem: ' + err.message);
+      });
+  }
+  </script>
+</body>
+</html>
